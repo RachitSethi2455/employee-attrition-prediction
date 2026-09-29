@@ -30,7 +30,9 @@ pip install -r requirements.txt
 jupyter notebook employee_attrition_classification.ipynb
 ```
 
-Place the dataset as `test.csv` next to the notebook. It needs an `Attrition` target column. The dataset isn't included in this repo.
+## Dataset
+
+This project uses the [Employee Attrition Classification Dataset](https://www.kaggle.com/datasets/stealthtechnologies/employee-attrition-dataset) (Kaggle, stealthtechnologies), a **synthetic** HR dataset. It uses the dataset's `test.csv` split (about 14.9K records, with an `Attrition` target of Stayed/Left). Download `test.csv` from Kaggle and place it next to the notebook. The dataset isn't included in this repo.
 
 ## Next steps
 
@@ -38,6 +40,8 @@ Place the dataset as `test.csv` next to the notebook. It needs an `Attrition` ta
 - Gradient boosting (XGBoost / LightGBM)
 - Feature importance / SHAP to explain *why* employees leave
 - One-hot encoding for nominal features instead of label encoding
+- Fit the scaler on the training split only, to avoid test-set leakage
+- Train on the dataset's larger `train.csv` and evaluate on `test.csv`
 
 ## Tech
 
