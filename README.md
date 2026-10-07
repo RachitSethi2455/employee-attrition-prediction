@@ -85,3 +85,7 @@ On the first run, the notebook downloads the dataset into `data/` with [`kaggleh
 ## Tech
 
 Python · pandas · scikit-learn · seaborn · matplotlib · kagglehub
+
+## License
+
+Code is released under the [MIT License](LICENSE). The dataset keeps its own Kaggle license.
