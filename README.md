@@ -19,7 +19,7 @@ This project predicts whether an employee will **leave** a company from HR attri
 - **From scores to decisions.** A capture curve and a budget table show what an HR team gains by contacting the top *k%* of employees ranked by risk.
 - **Trustworthy probabilities.** A reliability diagram shows the predicted risks are well calibrated (expected calibration error 0.019), so "70% risk" really means about 70%.
 - **Explainability.** Permutation importance shows global drivers. **SHAP** splits each individual prediction into per-feature contributions that add up exactly to the model output.
-- **Fairness audit.** Flag rates, true- and false-positive rates are compared across gender and marital status, plus an ablation without those attributes.
+- **Fairness audit and mitigation.** Flag rates, true- and false-positive rates are compared across gender and marital status, with an ablation without those attributes and group-specific thresholds that close the gaps for 1.5 points of accuracy.
 - **Engineering.** Shared code lives in the [`attrition/`](attrition) package, which the notebook, the [demo app](app.py) and the [unit tests](tests) all import. CI runs the tests on every push.
 
 ## Results
@@ -94,6 +94,19 @@ Gender and marital status are model inputs, so the model's errors are compared g
 - **The model amplifies existing group differences.** Single employees are flagged 73% of the time against an actual attrition rate of 67%. Stayers who are single are wrongly flagged at **2.7× the rate** of married stayers (43% vs 16%), and stayers who are women at 1.5× the rate of men (29% vs 19%).
 - **Removing Gender and Marital Status costs 5 points of ROC-AUC** (0.852 → 0.802) and nearly closes the flag-rate gaps (from 14 to 0.3 points by gender, and from 41 to 1 by marital status). Attrition rates genuinely differ between these groups in the data, so choosing between the two models is a **policy decision**, not a purely technical one.
 
+### Mitigation: group-specific thresholds
+
+A standard post-processing fix keeps the model but gives each Gender × Marital Status group its own decision threshold, so every group has the **same false-positive rate**. The thresholds are fitted on out-of-fold training predictions, so the test set is never used.
+
+| Policy | Accuracy | F1 (Left) | FPR gap: gender | FPR gap: marital | TPR gap: gender | TPR gap: marital |
+|---|---|---|---|---|---|---|
+| Single threshold (0.5) | 0.760 | 0.747 | 9.7 pts | 27.1 pts | 8.5 pts | 27.2 pts |
+| **Group-specific thresholds** | 0.745 | 0.725 | **2.0 pts** | **3.8 pts** | **2.1 pts** | **4.0 pts** |
+
+![Group-specific thresholds](assets/fairness_thresholds.png)
+
+The gaps nearly close for 1.5 points of accuracy, with ROC-AUC unchanged. That is far cheaper than dropping the attributes. But the errors are **redistributed, not removed**: stayers who are married men are now wrongly flagged 22% of the time instead of 13%, while single women's stayers drop from 51% to 23%. The method also uses gender and marital status *explicitly* at decision time, which is restricted or unlawful for employment decisions in many jurisdictions. Like the ablation above, it's a policy choice.
+
 ## Demo app
 
 [`app.py`](app.py) is a [Gradio](https://gradio.app) app. Enter an employee profile and it returns the risk of leaving, a Low/Medium/High band, and a SHAP chart of the factors behind that prediction. Three one-click example profiles show the range: a typical employee (30% risk), an entry-level single employee with poor work-life balance (96%), and a senior married remote worker (0.3%).
@@ -139,7 +152,7 @@ employee_attrition_classification.ipynb
 
 - The data is **synthetic**, so the drivers and group gaps describe the generator rather than a real workforce.
 - Tuning added only about 0.003 AUC over the defaults. The next gains would have to come from features, not hyperparameters.
-- Next steps: fairness-aware thresholds per group, and checking real HR data for **proxy features** that could reintroduce a removed attribute.
+- Next steps: checking real HR data for **proxy features** that could reintroduce a removed attribute.
 
 ## Tech
 
