@@ -52,6 +52,27 @@ def run(*args):
     return {"Leaves": p, "Stays": 1 - p}, f"**{band} risk** ({p:.0%} probability of leaving)", explain_plot(contrib, values)
 
 
+# One-click example profiles. Each one starts from the typical employee (median / most common values).
+PRESETS = {
+    "Typical employee": {},
+    "Entry-level, single, poor work-life balance": {
+        "Job Level": "Entry", "Marital Status": "Single", "Work-Life Balance": "Poor", "Remote Work": "No",
+        "Distance from Home": 90, "Number of Promotions": 0, "Number of Dependents": 0, "Company Reputation": "Poor",
+    },
+    "Senior, married, works remotely": {
+        "Job Level": "Senior", "Marital Status": "Married", "Work-Life Balance": "Excellent", "Remote Work": "Yes",
+        "Distance from Home": 10, "Number of Promotions": 2, "Number of Dependents": 3, "Company Reputation": "Excellent",
+    },
+}
+
+
+def preset_values(name):
+    """Feature values for a preset, in FEATURES order."""
+    values = {f: card["numeric_ranges"][f][2] if f in NUMERIC else card["categorical_defaults"][f] for f in FEATURES}
+    values.update(PRESETS[name])
+    return [values[f] for f in FEATURES]
+
+
 def build_inputs():
     ranges, defaults = card["numeric_ranges"], card["categorical_defaults"]
     inputs = []
@@ -81,6 +102,8 @@ with gr.Blocks(title="Employee Attrition Risk") as demo:
             probs = gr.Label(label="Prediction")
             plot = gr.Plot(label="Why? Top drivers for this employee (SHAP)")
     button.click(run, inputs, [probs, band, plot])
+    gr.Examples([preset_values(name) for name in PRESETS], inputs, [probs, band, plot], fn=run,
+                run_on_click=True, example_labels=list(PRESETS), label="Try an example profile")
 
 if __name__ == "__main__":
     demo.launch()

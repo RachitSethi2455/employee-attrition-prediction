@@ -84,3 +84,17 @@ def test_demo_app_prediction():
     assert set(contrib.index) == set(FEATURES)
     probs, text, fig = app.run(*[values[f] for f in FEATURES])
     assert abs(sum(probs.values()) - 1) < 1e-9 and "risk" in text
+
+
+@pytest.mark.skipif(not (MODELS / "attrition_model.joblib").exists(), reason="run the notebook to create models/")
+def test_demo_presets_span_the_risk_range():
+    import app
+
+    bands = {}
+    for name in app.PRESETS:
+        values = dict(zip(FEATURES, app.preset_values(name)))
+        p, band, _ = app.predict_employee(values)
+        bands[name] = (p, band)
+    assert bands["Entry-level, single, poor work-life balance"][1] == "High"
+    assert bands["Senior, married, works remotely"][1] == "Low"
+    assert bands["Entry-level, single, poor work-life balance"][0] > bands["Typical employee"][0] > bands["Senior, married, works remotely"][0]

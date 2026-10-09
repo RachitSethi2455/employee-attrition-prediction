@@ -17,6 +17,7 @@ This project predicts whether an employee will **leave** a company from HR attri
 - **Leak-free pipeline.** Encoding and scaling sit inside a `Pipeline`/`ColumnTransformer`, so they are fit on training folds only. Ordered categories (*Poor < Fair < Good < Excellent*) keep their real order.
 - **Proper evaluation protocol.** Models are compared on a validation split, the winner is tuned with 5-fold CV, and the score on the untouched `test.csv` is reported once.
 - **From scores to decisions.** A capture curve and a budget table show what an HR team gains by contacting the top *k%* of employees ranked by risk.
+- **Trustworthy probabilities.** A reliability diagram shows the predicted risks are well calibrated (expected calibration error 0.019), so "70% risk" really means about 70%.
 - **Explainability.** Permutation importance shows global drivers. **SHAP** splits each individual prediction into per-feature contributions that add up exactly to the model output.
 - **Fairness audit.** Flag rates, true- and false-positive rates are compared across gender and marital status, plus an ablation without those attributes.
 - **Engineering.** Shared code lives in the [`attrition/`](attrition) package, which the notebook, the [demo app](app.py) and the [unit tests](tests) all import. CI runs the tests on every push.
@@ -41,6 +42,16 @@ This project predicts whether an employee will **leave** a company from HR attri
 | **0.760** | **0.852** | 0.745 | 0.749 | 0.747 |
 
 ![Test results](assets/final_test_results.png)
+
+## Can the probabilities be trusted?
+
+Retention targeting and the demo both use the model's **probabilities**, so they should mean what they say. Test employees are grouped into 10 equal-sized bins by predicted risk, and each bin's prediction is compared with its actual attrition rate:
+
+- **Expected calibration error is 0.019**, and the Brier score is 0.157, which is 37% better than predicting the base rate for everyone.
+- Between about 20% and 85% predicted risk, the actual attrition rate matches the prediction to within about 2 points.
+- At the extremes the model is slightly cautious: it predicts 4% for the safest tenth, where 0.3% leave, and 93% for the riskiest tenth, where 97% leave.
+
+![Calibration](assets/calibration.png)
 
 ## Using the scores: retention targeting
 
@@ -85,7 +96,7 @@ Gender and marital status are model inputs, so the model's errors are compared g
 
 ## Demo app
 
-[`app.py`](app.py) is a [Gradio](https://gradio.app) app. Enter an employee profile and it returns the risk of leaving, a Low/Medium/High band, and a SHAP chart of the factors behind that prediction.
+[`app.py`](app.py) is a [Gradio](https://gradio.app) app. Enter an employee profile and it returns the risk of leaving, a Low/Medium/High band, and a SHAP chart of the factors behind that prediction. Three one-click example profiles show the range: a typical employee (30% risk), an entry-level single employee with poor work-life balance (96%), and a senior married remote worker (0.3%).
 
 ```bash
 pip install -r requirements.txt
@@ -128,7 +139,7 @@ employee_attrition_classification.ipynb
 
 - The data is **synthetic**, so the drivers and group gaps describe the generator rather than a real workforce.
 - Tuning added only about 0.003 AUC over the defaults. The next gains would have to come from features, not hyperparameters.
-- Next steps: probability calibration, fairness-aware thresholds per group, and checking real HR data for **proxy features** that could reintroduce a removed attribute.
+- Next steps: fairness-aware thresholds per group, and checking real HR data for **proxy features** that could reintroduce a removed attribute.
 
 ## Tech
 
